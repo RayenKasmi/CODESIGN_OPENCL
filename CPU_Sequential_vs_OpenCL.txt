@@ -1,0 +1,58 @@
+Platform: NVIDIA CUDA
+Device: NVIDIA GeForce RTX 3070 Laptop GPU (ALL | GPU)
+        Global memory:          7.99951171875 GB
+        Global cache:           1120.0 KB (READ_WRITE_CACHE)
+        Global cache line:      128 B
+        Local memory:           48.0 KB (LOCAL)
+        Constant memory:        64.0 KB
+        Compute units:          40
+        Max work-group size:    1024
+        Max work-item size:     [1024, 1024, 64]
+        Lockstep unit:          32
+        Max concurrent workgroups (est): 1280
+
+
+Platform: Intel(R) OpenCL HD Graphics
+Device: Intel(R) UHD Graphics (ALL | GPU)
+        Global memory:          12.683395385742188 GB
+        Global cache:           512.0 KB (READ_WRITE_CACHE)
+        Global cache line:      64 B
+        Local memory:           64.0 KB (LOCAL)
+        Constant memory:        4194296.0 KB
+        Compute units:          32
+        Max work-group size:    256
+        Max work-item size:     [256, 256, 256]
+        Lockstep unit:          64
+        Max concurrent workgroups (est): 1792
+
+
+Platform: Intel(R) OpenCL
+Device: 11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz (ALL | CPU)
+        Global memory:          31.70849609375 GB
+        Global cache:           256.0 KB (READ_WRITE_CACHE)
+        Global cache line:      64 B
+        Local memory:           256.0 KB (GLOBAL)
+        Constant memory:        128.0 KB
+        Compute units:          16
+        Max work-group size:    8192
+        Max work-item size:     [8192, 8192, 8192]
+        Lockstep unit:          128
+        Max concurrent workgroups (est): 16
+
+1/
+CPU SEQUENTIAL:
+N = 256
+4.232976198196411 seconds at 0.007926912514721177 GFLOPS for 1 matrix product
+N=512
+36.66596055030823 seconds at 0.007321107969657253 GFLOPS for 1 matrix product
+
+CPU OPENCL COALSED local_size = 16
+N=256
+0.011387825012207031 seconds at 58.93036109007956 GFLOPS for 20 matrix product
+N=512
+0.0928962230682373 seconds at 57.79254465551729 GFLOPS  for 20 matrix product
+
+
+3/
+UNCOALSCED GROUP_SIZE(1*32) : 815.6464910194891 GFLOPS  VS COALSCED GROUP_SIZE(32*32) : 1047.4275121903784 GFLOPS
+UNCOALSCED GROUP_SIZE(32*32) : 146.53483724919127 GFLOPS VS COALSCED GROUP_SIZE(1*32) : 144.10353055055788 GFLOPS

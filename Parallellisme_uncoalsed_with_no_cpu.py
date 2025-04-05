@@ -17,30 +17,6 @@ N = 8192
 # Work group size
 WORKGROUP_SIZE = 16
 
-# CPU core configuration
-CPU_PLATFORM_ID = 2  # Intel CPU platform
-CPU_TOTAL_CORES = 16  # Total logical processors
-CPU_COMPUTE_CORES = 2  # Cores dedicated to computation
-CPU_TRANSFER_CORES = 14  # Cores dedicated to data transfer
-
-# Create a lock for transfer operations
-transfer_lock = threading.Lock()
-
-def set_thread_affinity(core_ids):
-    """Set thread affinity to specific cores."""
-    try:
-        # For Windows
-        if hasattr(os, 'sched_setaffinity'):
-            os.sched_setaffinity(0, core_ids)
-        else:
-            import ctypes
-            if hasattr(ctypes.windll, 'kernel32'):
-                # Windows-specific thread affinity setting
-                mask = sum(1 << i for i in core_ids)
-                ctypes.windll.kernel32.SetThreadAffinityMask(
-                    ctypes.windll.kernel32.GetCurrentThread(), mask)
-    except Exception as e:
-        print(f"Warning: Could not set thread affinity: {e}")
 
 def create_context_and_queue(platform_idx, device_idx=0):
     """Create an OpenCL context and command queue for the specified platform."""
@@ -60,24 +36,6 @@ def load_kernel():
     with open("C_elem_ij.cl", "r") as f:
         return f.read()
 
-def transfer_data(context, queue, data, read_only=True, host_to_device=True):
-    """Handle data transfer with dedicated cores."""
-    with transfer_lock:
-        # Set thread affinity to transfer cores
-        set_thread_affinity(list(range(CPU_COMPUTE_CORES, CPU_TOTAL_CORES)))
-        
-        mf = cl.mem_flags
-        if host_to_device:
-            if read_only:
-                buffer = cl.Buffer(context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=data)
-            else:
-                buffer = cl.Buffer(context, mf.WRITE_ONLY, size=data.nbytes)
-            return buffer
-        else:
-            # Device to host transfer
-            cl.enqueue_copy(queue, data, read_only)
-            queue.finish()
-
 def matrix_multiply_device(platform_idx, start_row, end_row, A_full, B_full, C_full, 
                           use_dedicated_cores=False, compute_core_ids=None):
     """Execute matrix multiplication on a specific device for a subset of rows."""
@@ -95,26 +53,17 @@ def matrix_multiply_device(platform_idx, start_row, end_row, A_full, B_full, C_f
     A_device = A_full[start_row*N:end_row*N].copy()
     C_device = np.zeros(num_rows*N, dtype=np.float32)
     
+    mf = cl.mem_flags
     # Create OpenCL buffers - use dedicated transfer cores if specified
-    if use_dedicated_cores and platform_idx == CPU_PLATFORM_ID:
-        d_a = transfer_data(context, queue, A_device, read_only=True, host_to_device=True)
-        d_b = transfer_data(context, queue, B_full, read_only=True, host_to_device=True)
-        d_c = transfer_data(context, queue, C_device, read_only=False, host_to_device=True)
-    else:
-        mf = cl.mem_flags
-        d_a = cl.Buffer(context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=A_device)
-        d_b = cl.Buffer(context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=B_full)
-        d_c = cl.Buffer(context, mf.WRITE_ONLY, C_device.nbytes)
+    d_a = cl.Buffer(context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=A_device)
+    d_b = cl.Buffer(context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=B_full)
+    d_c = cl.Buffer(context, mf.WRITE_ONLY, C_device.nbytes)
     
     # Build program
     kernel_source = load_kernel()
     program = cl.Program(context, kernel_source).build()
     mmul = program.mmul
     mmul.set_scalar_arg_dtypes([np.int32, None, None, None])
-    
-    # Set thread affinity for computation if using CPU
-    if use_dedicated_cores and platform_idx == CPU_PLATFORM_ID and compute_core_ids:
-        set_thread_affinity(compute_core_ids)
     
     # Execute kernel
     start_time = time.time()
@@ -123,13 +72,8 @@ def matrix_multiply_device(platform_idx, start_row, end_row, A_full, B_full, C_f
         event = mmul(queue, (num_rows, N), (WORKGROUP_SIZE, WORKGROUP_SIZE), 
                      np.int32(N), d_a, d_b, d_c)
         event.wait()
-        
-        # Copy result back - use dedicated transfer cores if specified
-        if use_dedicated_cores and platform_idx == CPU_PLATFORM_ID:
-            transfer_data(context, queue, C_device, read_only=d_c, host_to_device=False)
-        else:
-            cl.enqueue_copy(queue, C_device, d_c)
-            queue.finish()
+        cl.enqueue_copy(queue, C_device, d_c)
+        queue.finish()
             
     except Exception as e:
         print(f"Error on device {device_name}: {str(e)}")
@@ -151,17 +95,10 @@ def multi_device_matrix_multiply():
     B = np.full(N*N, BVAL, dtype=np.float32)
     C = np.zeros(N*N, dtype=np.float32)
     
-    # Define compute cores for CPU work
-    cpu_compute_cores = list(range(CPU_COMPUTE_CORES))
-    
     # Work distribution based on performance analysis
     devices = [
-        {"platform_idx": 0, "start_row": 0, "end_row": 7856, 
-         "use_dedicated_cores": False},
-        {"platform_idx": 2, "start_row": 7856, "end_row": 8048, 
-         "use_dedicated_cores": True, "compute_core_ids": cpu_compute_cores},
-        {"platform_idx": 1, "start_row": 8048, "end_row": N, 
-         "use_dedicated_cores": False}
+        {"platform_idx": 0, "start_row": 0, "end_row": 8048},
+        {"platform_idx": 1, "start_row": 8048, "end_row": N}
     ]
     
     # Measure single device performance first (NVIDIA GPU with all rows)

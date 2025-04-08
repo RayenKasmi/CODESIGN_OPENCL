@@ -841,19 +841,35 @@ matrix first 10 elements:
  152703.17 152703.17 152703.17]
 Better row distribution based on throughput: {1: 144, 2: 240, 0: 7808}
 
-Single NVIDIA GPU: 4.130121s
-Multi-device: 5.327380s
-Speedup: 0.775263x
+## iteration 2
+the best result xd
+Device: NVIDIA GeForce RTX 3070 Laptop GPU processing rows 0 to 8192
+Device: NVIDIA GeForce RTX 3070 Laptop GPU completed in 20.7752s at 264.62 GFLOPS
+Single device time: 20.7752s
 
-Final speedup achieved: 0.78x
-Execution times for each device: {1: 3.4226577281951904, 0: 4.160138845443726, 2: 5.327380418777466}
-Throughput for each device: {1: 5.019452877942065, 0: 251.90794325813468, 2: 6.449649859223854}
+Starting multi-device execution...
+Device: NVIDIA GeForce RTX 3070 Laptop GPU processing rows 0 to 7872
+Device: 11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz processing rows 7872 to 8048
+Device: Intel(R) UHD Graphics processing rows 8048 to 8192
+
+Device: Intel(R) UHD Graphics completed in 19.3849s at 4.99 GFLOPS
+Device: 11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz completed in 19.5601s at 6.04 GFLOPS
+Device: NVIDIA GeForce RTX 3070 Laptop GPU completed in 20.5257s at 257.38 GFLOPS
+
+===== RESULTS =====
+Single NVIDIA GPU: 20.775176s
+Multi-device: 20.525678s
+Speedup: 1.012155x
+
+Final speedup achieved: 1.01x
+Execution times for each device: {1: 19.384886264801025, 2: 19.56012725830078, 0: 20.525678396224976}
+Throughput for each device: {1: 4.9851602346242565, 2: 6.038386104562622, 0: 257.3756478154505}
 matrix first 10 elements:
 [152703.17 152703.17 152703.17 152703.17 152703.17 152703.17 152703.17
  152703.17 152703.17 152703.17]
-Better row distribution based on throughput: {1: 144, 2: 192, 0: 7856}
+Better row distribution based on throughput: {1: 144, 2: 176, 0: 7872}
 
-## iteration 2
-the previous one was the best result xd
+noticed that when gpu runs alone it receives 140 watts on average but when the cpu is unsed in parralel with the gpu it receive only 120 watts on average and the cpu uses 55 watts on averga which explains the dip in throughput for the cpu.
+
 
 # References

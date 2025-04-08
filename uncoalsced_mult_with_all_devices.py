@@ -16,12 +16,14 @@ from definitions import *
 N = 8192
 # Work group size
 WORKGROUP_SIZE = 16
+COUNT = 5
 
 # CPU core configuration
 CPU_PLATFORM_ID = 2  # Intel CPU platform
 CPU_TOTAL_CORES = 16  # Total logical processors
-CPU_COMPUTE_CORES = 2  # Cores dedicated to computation
-CPU_TRANSFER_CORES = 14  # Cores dedicated to data transfer
+CPU_COMPUTE_CORES = 4  # Cores dedicated to computation
+CPU_TRANSFER_CORES = 12  # Cores dedicated to data transfer
+
 
 # Create a lock for transfer operations
 transfer_lock = threading.Lock()
@@ -118,25 +120,24 @@ def matrix_multiply_device(platform_idx, start_row, end_row, A_full, B_full, C_f
     
     # Execute kernel
     start_time = time.time()
-    
-    try:
-        event = mmul(queue, (num_rows, N), (WORKGROUP_SIZE, WORKGROUP_SIZE), 
-                     np.int32(N), d_a, d_b, d_c)
-        event.wait()
-        
-        # Copy result back - use dedicated transfer cores if specified
-        if use_dedicated_cores and platform_idx == CPU_PLATFORM_ID:
-            transfer_data(context, queue, C_device, read_only=d_c, host_to_device=False)
-        else:
-            cl.enqueue_copy(queue, C_device, d_c)
-            queue.finish()
+    for i in range(COUNT):
+        try:
+            event = mmul(queue, (num_rows, N), (WORKGROUP_SIZE, WORKGROUP_SIZE), 
+                        np.int32(N), d_a, d_b, d_c)
+            event.wait()
             
-    except Exception as e:
-        print(f"Error on device {device_name}: {str(e)}")
-        return None
-    
+            # Copy result back - use dedicated transfer cores if specified
+            if use_dedicated_cores and platform_idx == CPU_PLATFORM_ID:
+                transfer_data(context, queue, C_device, read_only=d_c, host_to_device=False)
+            else:
+                cl.enqueue_copy(queue, C_device, d_c)
+                queue.finish()
+                
+        except Exception as e:
+            print(f"Error on device {device_name}: {str(e)}")
+            return None
     execution_time = time.time() - start_time
-    gflops = 2.0 * num_rows * N * N/(1000000000.0 * execution_time)
+    gflops = 2.0 * num_rows * COUNT * N * N/(1000000000.0 * execution_time)
     print(f"Device: {device_name} completed in {execution_time:.4f}s at {gflops:.2f} GFLOPS")
     
     # Copy the result back to the appropriate part of C_full
@@ -156,9 +157,9 @@ def multi_device_matrix_multiply():
     
     # Work distribution based on performance analysis
     devices = [
-        {"platform_idx": 0, "start_row": 0, "end_row": 7856, 
+        {"platform_idx": 0, "start_row": 0, "end_row": 7872, 
          "use_dedicated_cores": False},
-        {"platform_idx": 2, "start_row": 7856, "end_row": 8048, 
+        {"platform_idx": 2, "start_row": 7872, "end_row": 8048, 
          "use_dedicated_cores": True, "compute_core_ids": cpu_compute_cores},
         {"platform_idx": 1, "start_row": 8048, "end_row": N, 
          "use_dedicated_cores": False}

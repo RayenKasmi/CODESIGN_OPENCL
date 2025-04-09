@@ -54,14 +54,14 @@ Device: 11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz (ALL | CPU)
 
 | Implementation                | Matrix Size | Execution Time (s) | Performance (GFLOPS) | Operations         |
 | ----------------------------- | ----------- | ------------------ | -------------------- | ------------------ |
-| CPU Sequential                | 256         | 4.23               | 0.008                | 1 matrix product   |
-| CPU Sequential                | 512         | 36.67              | 0.007                | 1 matrix product   |
+| CPU Sequential                | 256         | 4.23               | 0.00792                | 1 matrix product   |
+| CPU Sequential                | 512         | 36.67              | 0.00732               | 1 matrix product   |
 | CPU OpenCL (Coalesced, LS=16) | 256         | 0.011              | 58.93                | 20 matrix products |
 | CPU OpenCL (Coalesced, LS=16) | 512         | 0.093              | 57.79                | 20 matrix products |
 
 ### Analysis:
 
-- **Sequential vs. OpenCL Performance Gap**: OpenCL implementation on CPU achieves ~7,400× higher performance than sequential code for N=256 and ~7,900× higher for N=512
+- **Sequential vs. OpenCL Performance Gap**: OpenCL implementation on CPU achieves ~7,440× higher performance than sequential code for N=256 and ~7,900× higher for N=512
 - **Reasons for Massive Speedup**:
     1. **Parallelization**: OpenCL utilizes all CPU cores and SIMD units
     2. **Cache Optimization**: Better memory access patterns in OpenCL implementation
@@ -873,3 +873,58 @@ noticed that when gpu runs alone it receives 140 watts on average but when the c
 
 
 # References
+
+### iyed results
+===== RESULTS =====
+Single NVIDIA GPU: 44.127476s
+Multi-device: 44.821002s
+Speedup: 0.984527x
+
+Final speedup achieved: 0.98x
+Execution times for each device: {0: 41.17525100708008, 2: 41.30077934265137, 1: 44.82100248336792}
+Throughput for each device: {0: 122.824363357746, 2: 8.059411244481169, 1: 2.395622062220589}
+matrix first 10 elements:
+[152703.17 152703.17 152703.17 152703.17 152703.17 152703.17 152703.17
+ 152703.17 152703.17 152703.17]
+Better row distribution based on throughput: {1: 144, 2: 480, 0: 7568}
+
+===== RESULTS =====
+Single NVIDIA GPU: 43.953746s
+Multi-device: 41.883055s
+Speedup: 1.049440x
+
+Final speedup achieved: 1.05x
+Execution times for each device: {1: 37.065372705459595, 0: 40.86957097053528, 2: 41.883055210113525}
+Throughput for each device: {1: 2.3175092991132216, 0: 124.0057404305466, 2: 8.203732558579713}
+matrix first 10 elements:
+[152703.17 152703.17 152703.17 152703.17 152703.17 152703.17 152703.17
+ 152703.17 152703.17 152703.17]
+Better row distribution based on throughput: {1: 128, 2: 496, 0: 7568}
+
+then
+
+===== RESULTS =====
+Single NVIDIA GPU: 44.027929s
+Multi-device: 41.061944s
+Speedup: 1.072232x
+
+Final speedup achieved: 1.07x
+Execution times for each device: {1: 36.08024263381958, 2: 38.760624170303345, 0: 41.061944246292114}
+Throughput for each device: {1: 2.3807862599982297, 2: 8.310561403363465, 0: 123.94776572761978}
+matrix first 10 elements:
+[152703.17 152703.17 152703.17 152703.17 152703.17 152703.17 152703.17
+ 152703.17 152703.17 152703.17]
+Better row distribution based on throughput: {1: 144, 2: 496, 0: 7552}
+
+===== RESULTS =====
+Single NVIDIA GPU: 43.883839s
+Multi-device: 41.004239s
+Speedup: 1.070227x
+
+Final speedup achieved: 1.07x
+Execution times for each device: {1: 37.453739166259766, 2: 39.65174841880798, 0: 41.004239320755005}
+Throughput for each device: {1: 2.293478510615103, 2: 8.123791763169965, 0: 124.12219638918758}
+matrix first 10 elements:
+[152703.17 152703.17 152703.17 152703.17 152703.17 152703.17 152703.17
+ 152703.17 152703.17 152703.17]
+Better row distribution based on throughput: {1: 128, 2: 480, 0: 7584}
